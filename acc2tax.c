@@ -4,6 +4,7 @@
  * Purpose: Convert GI or accession to taxonomy
  * Created: 10 Jan 2013
  * Update:  10 Jun 2016
+ * Notes:   Changes by Johan Nylander, Nov 2017
  *----------------------------------------------------------------------*/
 
 #include <stdio.h>
@@ -15,9 +16,9 @@
  * Constants
  *----------------------------------------------------------------------*/
 #define MAX_GI 1050000000
-#define MAX_NAMES 2000000
+#define MAX_NAMES 20000000
 #define MAX_PATH 10000
-#define VERSION "v0.4"
+#define VERSION "v.0.5"
 
 /*----------------------------------------------------------------------*
  * Globals
@@ -36,6 +37,11 @@ unsigned int* nodes;
 unsigned int max_gi = MAX_GI;
 FILE* acc_fp;
 long int acc_file_size;
+
+/*----------------------------------------------------------------------*
+ * Explicit Declarations
+ *----------------------------------------------------------------------*/
+int find_accession(char* search_accession, char* line, char** accession, char** version, long int* taxid, long int* gi);
 
 /*----------------------------------------------------------------------*
  * Function:   usage
@@ -87,6 +93,7 @@ void parse_command_line(int argc, char* argv[])
     input_filename[0] = 0;
     output_filename[0] = 0;
     database_dir[0] = 0;
+    //database_dir[0] = '/home/nylander/db/taxonomy';
     
     while ((opt = getopt_long(argc, argv, "ad:e:ghi:no:p", long_options, &longopt_index)) > 0)
     {
@@ -279,7 +286,7 @@ void load_node_list(void)
     while (!feof(fp)) {
         if (fgets(line, 1024, fp)) {
             char* child_str = strtok(line, "\t");
-            char* ignore = strtok(0, "\t");
+            //char* ignore = strtok(0, "\t");
             char* parent_str = strtok(0, "\t");
             
             if ((!child_str) || (!parent_str)) {
@@ -363,7 +370,7 @@ void load_name_list(void)
 
             if (strcmp(class, "scientific name") == 0) {
                 memory_required += (strlen(name)+1);
-                names[id] = malloc(strlen(name)+1);
+                names[id] = malloc(strlen(name)+1); // 2017-11-01: Core dump here while loading names.dmp!
                 if (!names[id]) {
                     printf("Error: can't allocate memory for name\n");
                 } else {
@@ -396,7 +403,8 @@ char* get_taxonomy_from_node(int current_node, char* taxonomy)
     }
     
     for (i=n-1; i>=0; i--) {
-        if (names[node_list[i]] > 0) {
+        //if (names[node_list[i]] > 0) { // warning: ordered comparison of pointer with integer zero [-Wextra]
+        if (names[node_list[i]] != 0) {
             strcat(taxonomy, names[node_list[i]]);
             if (i > 0) strcat(taxonomy, ",");
         } else {
@@ -415,13 +423,13 @@ char* get_taxonomy_from_node(int current_node, char* taxonomy)
  * Parameters: None
  * Returns:    None
  *----------------------------------------------------------------------*/
-char* get_taxonomy_by_gi(int gi, char* taxonomy)
+char* get_taxonomy_by_gi(int gi, char* taxonomy) //char* get_taxonomy_by_gi(unsigned int gi, char* taxonomy)
 {
     int e = 0;
     int current_node;
     
-    if ((gi >= max_gi) || (gi < 1)) {
-        printf("\nError: bad GI (%d)\n", gi);
+    if ((gi >= max_gi) || (gi < 1)) {         //gi >= max_gi warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+        printf("\nError: bad GI (%d)\n", gi); // gi is of type int, but max_gi is of type unsigned int
         e = 1;
     }
     
@@ -523,7 +531,8 @@ void process_request_file()
  * Parameters:
  * Returns:
  *----------------------------------------------------------------------*/
-void open_acc_file(char* filename) {
+void open_acc_file(char* filename)
+{
     acc_fp = fopen(filename, "r");
     if (!acc_fp) {
         printf("Error: can't open %s\n", filename);
@@ -540,16 +549,28 @@ void open_acc_file(char* filename) {
  * Parameters:
  * Returns:
  *----------------------------------------------------------------------*/
-void close_acc_file() {
+void close_acc_file()
+{
     if (acc_fp) {
         fclose(acc_fp);
     }
 }
 
-char* get_first_token(char* string, char* value, char token) {
+/*----------------------------------------------------------------------*
+ * Function:
+ * Purpose:
+ * Parameters:
+ * Returns:
+ *----------------------------------------------------------------------*/
+char* get_first_token(char* string, char* value, char token)
+{
     int i;
+    long int sl;
+
+    sl = strlen(string);
     
-    for (i=0; i<strlen(string); i++) {
+    //for (i=0; i<strlen(string); i++) { //i<strlen(string) warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+    for (i=0; i<sl; i++) {
         if (string[i] == token) {
             break;
         } else {
@@ -566,13 +587,14 @@ char* get_first_token(char* string, char* value, char token) {
  * Parameters:
  * Returns:
  *----------------------------------------------------------------------*/
-void get_closest_record(long int pos, char* line) {
+void get_closest_record(long int pos, char* line)
+{
     char c;
-    char temp[1024];
-    char token[1024];
-    char* this_acc;
-    char* prev_acc;
-    char* next_acc;
+    //char temp[1024];
+    //char token[1024];
+    //char* this_acc;
+    //char* prev_acc;
+    //char* next_acc;
     
     while (pos >= 0) {
         fseek(acc_fp, pos, SEEK_SET);
@@ -597,7 +619,8 @@ void get_closest_record(long int pos, char* line) {
  * Parameters:
  * Returns:
  *----------------------------------------------------------------------*/
-void split_fields(char* line, char** accession, char** version, long int* taxid, long int* gi) {
+void split_fields(char* line, char** accession, char** version, long int* taxid, long int* gi)
+{
     char* taxid_str;
     char* gi_str;
     
@@ -632,7 +655,8 @@ void split_fields(char* line, char** accession, char** version, long int* taxid,
  * Parameters:
  * Returns:
  *----------------------------------------------------------------------*/
-int find_accession(char* search_accession, char* line, char** accession, char** version, long int* taxid, long int* gi) {
+int find_accession(char* search_accession, char* line, char** accession, char** version, long int* taxid, long int* gi)
+{
     long int min = 0;
     long int max = acc_file_size;
     int similarity;
@@ -672,6 +696,7 @@ int find_accession(char* search_accession, char* line, char** accession, char** 
  * Purpose:
  * Parameters:
  * Returns:
+ * Note: Manual says "nucl_all.txt, and "prot_all.txt"!
  *----------------------------------------------------------------------*/
 void load_accession_file(void)
 {
