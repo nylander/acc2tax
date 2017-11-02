@@ -23,6 +23,7 @@
 /*----------------------------------------------------------------------*
  * Globals
  *----------------------------------------------------------------------*/
+//char database_dir[MAX_PATH] = "/home/db/taxonomy";
 char database_dir[MAX_PATH];
 char input_filename[MAX_PATH];
 char output_filename[MAX_PATH];
@@ -92,8 +93,7 @@ void parse_command_line(int argc, char* argv[])
     
     input_filename[0] = 0;
     output_filename[0] = 0;
-    database_dir[0] = 0;
-    //database_dir[0] = '/home/nylander/db/taxonomy';
+    database_dir[0] = 0; // comment here to use default value
     
     while ((opt = getopt_long(argc, argv, "ad:e:ghi:no:p", long_options, &longopt_index)) > 0)
     {
