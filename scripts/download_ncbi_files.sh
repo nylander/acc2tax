@@ -1,16 +1,35 @@
 #!/bin/bash
 
-#      Version: 11/02/2017 11:17:22 AM
-#         Sign: JN
+#  Description: Download taxonomy files from NCBI, and
+#               prepare files for acc2tax.
+#      Version: 11/03/2017 11:00:27 AM
+#         Sign: Johan Nylander
 #      Sources: ftp://ftp.ncbi.nih.gov/pub/taxonomy/
-# Requirements: wget, pigz
+# Requirements: pigz, wget
 #        Notes: acc2tax s from https://github.com/richardmleggett/acc2tax
-#               Check the directory tree and URLs on genbank often.
+#               Check the directory tree and URLs on genbank often,
+#               links might change!
 #         TODO: Consider downloading several files in parallel
 
 set -euo pipefail
 
-mkdir -p taxonomy && cd taxonomy
+UNPIGZ=$(which unpigz)
+if [ ! -x "$UNPIGZ" ]; then
+  echo "unpigz can not be found in the PATH. Quitting."
+  exit 1
+fi
+
+WGET=$(which wget)
+if [ ! -x "$WGET" ]; then
+  echo "wget can not be found in the PATH. Quitting."
+  exit 1
+fi
+
+#mkdir -p taxonomy && cd taxonomy
+
+
+start=$(date +%s)
+
 
 ## Get taxon tree
 echo "Get taxon tree"
@@ -20,7 +39,7 @@ if [ -e "$f" ] ; then
     rm -v "$f"
     rm -v *.dmp
 fi
-wget "${url}${f}" && tar --overwrite --extract -v -z -f "$f"
+${WGET} "${url}${f}" && tar --overwrite --extract -v -z -f "$f"
 
 ## Get GI to taxids for nucl
 echo "Get GI to taxids for nucl"
@@ -29,7 +48,7 @@ url="ftp://ftp.ncbi.nih.gov/pub/taxonomy/"
 if [ -e "$f" ] ; then
     rm -v $f
 fi
-wget "${url}${f}" && unpigz "$f"
+${WGET} "${url}${f}" && ${UNPIGZ} "$f"
 
 ## Get GI to taxids for prot
 echo "Get GI to taxids for prot"
@@ -38,7 +57,7 @@ url="ftp://ftp.ncbi.nih.gov/pub/taxonomy/"
 if [ -e "$f" ] ; then
     rm -v "$f"
 fi
-wget "${url}${f}" && unpigz "$f"
+${WGET} "${url}${f}" && ${UNPIGZ} "$f"
 
 ## Get Accessions to taxids for nucl
 echo "Get Accessions to taxids for nucl"
@@ -48,7 +67,7 @@ for f in ${nuclarray[@]} ; do
     if [ -e "$f" ] ; then
         rm -v "$f"
     fi
-    wget "${url}${f}" && unpigz -f "$f"
+    ${WGET} "${url}${f}" && $UNPIGZ -f "$f"
 done
 
 ## Get Accessions to taxids for prot
@@ -59,7 +78,7 @@ for f in ${protarray[@]} ; do
     if [ -e "$f" ] ; then
         rm -v "$f"
     fi
-    wget "${url}${f}" && unpigz -f "$f"
+    ${WGET} "${url}${f}" && ${UNPIGZ} -f "$f"
 done
 
 ## Merge and sort files for acc2tax
@@ -67,4 +86,9 @@ echo "Merge and sort files for acc2tax"
 cat *nucl_*.accession2taxid dead_wgs.accession2taxid  | sort > acc2tax_nucl_all.txt
 cat *prot.accession2taxid | sort > acc2tax_prot_all.txt
 
+## End of script
+end=$(date +%s)
+runtime=$((end-start))
+echo "Elapsed time: $runtime"
+echo "End of script"
 
