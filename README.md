@@ -2,9 +2,12 @@
 
 Richard.Leggett@tgac.ac.uk
 
-Given a file of accessions or Genbank IDs (one per line), this program will return a taxonomy string for each.
+Given a file of accessions or Genbank IDs (one per line), this program will
+return a taxonomy string for each.
 
-Lookup for Genbank IDs is quicker than for accessions, as the lookup table is stored in RAM (though this does mean it takes a couple of minutes to load). For accessions, the lookup is from disc.
+Lookup for Genbank IDs is quicker than for accessions, as the lookup table is
+stored in RAM (though this does mean it takes a couple of minutes to load). For
+accessions, the lookup is from disc.
 
 Database files can be downloaded from:
 
@@ -17,7 +20,8 @@ The files required are:
 - gi_taxid_nucl.dmp
 - gi_taxid_prot.dmp
 
-For accessions, you will need a merged sorted copy of some of the files from the accession2taxid directory:
+For accessions, you will need a merged sorted copy of some of the files from
+the accession2taxid directory:
 
 - nucl_est.accession2taxid
 - nucl_gb.accession2taxid

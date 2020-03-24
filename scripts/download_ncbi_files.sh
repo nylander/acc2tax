@@ -25,39 +25,78 @@ if [ ! -x "$WGET" ]; then
   exit 1
 fi
 
+MD5SUM=$(which md5sum)
+if [ ! -x "$MD5SUM" ]; then
+  echo "md5sum can not be found in the PATH. Quitting."
+  exit 1
+fi
+
 #mkdir -p taxonomy && cd taxonomy
 
-
 start=$(date +%s)
-
 
 ## Get taxon tree
 echo "Get taxon tree"
 url="ftp://ftp.ncbi.nih.gov/pub/taxonomy/"
 f="taxdump.tar.gz"
+m="${f}.md5"
 if [ -e "$f" ] ; then
-    rm -v "$f"
-    rm -v *.dmp
+    if [ -e "$m" ] ; then
+        rm -v "$m"
+    fi
+    ${WGET} "${url}${m}"
+    if ${MD5SUM} --status -c ${m} ; then
+        echo "${f} seems to be up to date, skipping"
+    else
+        rm -v "$f"
+        ${WGET} "${url}${f}" && tar --overwrite --extract -v -z -f "$f"
+    fi
+else
+    ${WGET} "${url}${m}"
+    ${WGET} "${url}${f}" && tar --overwrite --extract -v -z -f "$f"
 fi
-${WGET} "${url}${f}" && tar --overwrite --extract -v -z -f "$f"
 
 ## Get GI to taxids for nucl
 echo "Get GI to taxids for nucl"
 f="gi_taxid_nucl.dmp.gz"
+m="${f}.md5"
 url="ftp://ftp.ncbi.nih.gov/pub/taxonomy/"
 if [ -e "$f" ] ; then
-    rm -v $f
+    if [ -e "$m" ] ; then
+        rm -v "$m"
+    fi
+    ${WGET} "${url}${m}"
+    if ${MD5SUM} --status -c ${m} ; then
+        echo "${f} seems to be up to date, skipping"
+    else
+        rm -v "$f"
+        ${WGET} "${url}${f}" && ${UNPIGZ} --keep "$f"
+    fi
+else
+    ${WGET} "${url}${m}"
+    ${WGET} "${url}${f}" && ${UNPIGZ} --keep "$f"
 fi
-${WGET} "${url}${f}" && ${UNPIGZ} "$f"
 
 ## Get GI to taxids for prot
 echo "Get GI to taxids for prot"
 f="gi_taxid_prot.dmp.gz"
+m="${f}.md5"
 url="ftp://ftp.ncbi.nih.gov/pub/taxonomy/"
 if [ -e "$f" ] ; then
-    rm -v "$f"
+    if [ -e "$m" ] ; then
+        rm -v "$m"
+    fi
+    ${WGET} "${url}${m}"
+    if ${MD5SUM} --status -c ${m} ; then
+        echo "${f} seems to be up to date, skipping"
+    else
+        rm -v "$f"
+        ${WGET} "${url}${f}" && ${UNPIGZ} --keep "$f"
+    fi
+else
+    ${WGET} "${url}${m}"
+    ${WGET} "${url}${f}" && ${UNPIGZ} --keep "$f"
 fi
-${WGET} "${url}${f}" && ${UNPIGZ} "$f"
 
 ## Get Accessions to taxids for nucl
 echo "Get Accessions to taxids for nucl"
